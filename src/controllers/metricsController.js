@@ -182,22 +182,23 @@ export const getAggregatedMetrics = async (req, res) => {
 
     let dateFilter = {};
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    now.setUTCHours(0, 0, 0, 0);
 
     if (period === 'today') {
       dateFilter = { $gte: now };
     } else if (period === 'week') {
       const weekAgo = new Date(now);
-      weekAgo.setDate(weekAgo.getDate() - 7);
+      weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
       dateFilter = { $gte: weekAgo };
     } else if (period === 'month') {
       const monthAgo = new Date(now);
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
       dateFilter = { $gte: monthAgo };
     } else if (period === 'custom' && startDate && endDate) {
       const start = new Date(startDate);
+      start.setUTCHours(0, 0, 0, 0);
       const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      end.setUTCHours(23, 59, 59, 999);
       dateFilter = { $gte: start, $lte: end };
     }
 

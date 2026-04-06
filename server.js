@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './src/routes/auth.js';
 import employeeRoutes from './src/routes/employees.js';
 import metricsRoutes from './src/routes/metrics.js';
+import seedRoutes from './src/routes/seed.js';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ async function connectToMongo() {
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/metrics', metricsRoutes);
+app.use('/api/utility', seedRoutes);
 
 // Root route
 app.get('/', (req, res) => {
