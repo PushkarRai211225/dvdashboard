@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DV Monitoring Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <script src="js/chart.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2><img src="/Logos/DV-Logo.png" alt="DV Logo"></h2>
+        <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleMenu()">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+      <ul class="sidebar-menu" id="sidebarMenu">
+        <li><a href="#" data-page="overview" class="nav-link active">Overview</a></li>
+        <li><a href="#" data-page="team-performance" class="nav-link hidden-for-employee">Team Performance</a></li>
+        <li><a href="#" data-page="individual-performance" class="nav-link hidden-for-employee">Individual Performance</a></li>
+        <li><a href="#" data-page="activity-report" class="nav-link hidden-for-employee">Activity Report</a></li>
+        <li><a href="#" data-page="employee-management" class="nav-link hidden-for-non-admin">Employee Management</a></li>
+        <li><a href="#" data-page="my-data" class="nav-link hidden-for-admin">My Daily Data</a></li>
+        <li class="logout-menu-item hidden-desktop"><a href="#" class="nav-link" onclick="logout(); return false;">Logout</a></li>
+      </ul>
+      <div class="logout-button-desktop">
+        <button class="btn btn-logout" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="topbar-user">
+          <div class="user-info">
+            <span class="user-name" id="userName">User</span>
+            <span class="user-role" id="userRole">Employee</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div class="content">
+        <!-- Overview Page -->
+        <div id="overview" class="page hidden">
+          <h1 class="page-title">Dashboard Overview</h1>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <div>
+                <label class="filter-label">Time Period</label>
+                <select id="timePeriod">
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="overall" selected>Overall</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+              <div id="customDateRange" style="display: none;">
+                <label class="filter-label">Start Date</label>
+                <input type="date" id="startDate">
+              </div>
+              <div id="customDateRangeEnd" style="display: none;">
+                <label class="filter-label">End Date</label>
+                <input type="date" id="endDate">
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="metrics-grid" id="metricsGrid">
+            <!-- Populated by JavaScript -->
+          </div>
+
+          <!-- Charts Section -->
+          <div class="card">
+            <div class="card-title">Performance Charts</div>
+            <div style="position: relative; height: 400px; margin-bottom: 2rem;">
+              <canvas id="performanceChart"></canvas>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+              <div style="position: relative; height: 300px;">
+                <canvas id="admissionChart"></canvas>
+              </div>
+              <div style="position: relative; height: 300px;">
+                <canvas id="workshopChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Performance Page -->
+        <div id="team-performance" class="page hidden">
+          <h1 class="page-title">Team Performance</h1>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <div>
+                <label class="filter-label">Team</label>
+                <select id="teamFilter">
+                  <option value="admission">Admission</option>
+                  <option value="workshop">Workshop</option>
+                </select>
+              </div>
+              <div>
+                <label class="filter-label">Time Period</label>
+                <select id="teamTimePeriod">
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="overall" selected>Overall</option>
+                </select>
+              </div>
+              <div id="workshopFilterGroup" style="display: none;">
+                <label class="filter-label">Workshop Type</label>
+                <select id="workshopTypeFilter">
+                  <option value="">All Workshops</option>
+                  <option value="excel">Excel</option>
+                  <option value="sql">SQL</option>
+                  <option value="genai">Gen AI</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Metrics -->
+          <div class="card">
+            <div class="card-title" id="teamMetricsTitle">Admission Team Statistics</div>
+            <div id="teamMetricsContainer">
+              <div class="spinner"></div>
+            </div>
+          </div>
+
+          <!-- Team Members Table -->
+          <div class="card">
+            <div class="card-title">Team Members Performance</div>
+            <div class="table-responsive">
+              <table id="teamMembersTable">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Designation</th>
+                    <th id="metricHeader1">Metric 1</th>
+                    <th id="metricHeader2">Metric 2</th>
+                    <th id="metricHeader3">Metric 3</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Individual Performance Page -->
+        <div id="individual-performance" class="page hidden">
+          <h1 class="page-title">Individual Performance</h1>
+
+          <!-- Filters -->
+          <div class="filter-bar">
+            <div class="form-group">
+              <label class="filter-label">Search Employee</label>
+              <input type="text" id="employeeSearch" placeholder="Search by name or email...">
+            </div>
+            <div class="filter-group">
+              <div>
+                <label class="filter-label">Team</label>
+                <select id="individualTeamFilter">
+                  <option value="all">All Teams</option>
+                  <option value="admission">Admission</option>
+                  <option value="workshop">Workshop</option>
+                </select>
+              </div>
+              <div>
+                <label class="filter-label">Time Period</label>
+                <select id="individualTimePeriod">
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="overall" selected>Overall</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employees List -->
+          <div class="card">
+            <div class="card-title">Employee Performance</div>
+            <div class="table-responsive">
+              <table id="employeesTable">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Designation</th>
+                    <th id="individualMetricHeader1">Metric 1</th>
+                    <th id="individualMetricHeader2">Metric 2</th>
+                    <th id="individualMetricHeader3">Metric 3</th>
+                  </tr>
+                </thead>
+                <tbody id="employeesTableBody">
+                  <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Employee Details Modal -->
+          <div id="employeeDetailsModal" class="modal">
+            <div class="modal-content">
+              <button class="modal-close" onclick="closeEmployeeModal()">✕</button>
+              <div class="modal-header">Employee Performance Details</div>
+              <div id="employeeDetailsContent">
+                <div class="spinner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Report Page -->
+        <div id="activity-report" class="page hidden">
+          <h1 class="page-title">Employee Activity Report</h1>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <div>
+                <label class="filter-label">Report Date</label>
+                <input type="date" id="activityReportDate">
+              </div>
+              <div>
+                <label class="filter-label">Status</label>
+                <select id="activityStatusFilter">
+                  <option value="">All</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="pending">Not Submitted</option>
+                </select>
+              </div>
+              <div>
+                <label class="filter-label">Team</label>
+                <select id="activityTeamFilter">
+                  <option value="">All Teams</option>
+                  <option value="admission">Admission</option>
+                  <option value="workshop">Workshop</option>
+                </select>
+              </div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="loadActivityReport()" style="width: 100%;">Generate Report</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value" id="totalEmployeesCount">0</div>
+              <div class="metric-label">Total Employees</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="submittedCount">0</div>
+              <div class="metric-label">Activity Submitted</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="pendingCount">0</div>
+              <div class="metric-label">Not Submitted</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="submissionPercentage">0%</div>
+              <div class="metric-label">Submission Rate</div>
+            </div>
+          </div>
+
+          <!-- Activity Report Table -->
+          <div class="card">
+            <div class="card-title">Employee Activity Status</div>
+            <div class="table-responsive">
+              <table id="activityReportTable">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Designation</th>
+                    <th>Team</th>
+                    <th>Last Submitted</th>
+                    <th>Today Status</th>
+                    <th>Yesterday Status</th>
+                    <th>Days Without Submit</th>
+                  </tr>
+                </thead>
+                <tbody id="activityReportBody">
+                  <tr><td colspan="7" style="text-align: center;">Select a date and click Generate Report</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Not Submitted Alert -->
+          <div class="card" id="notSubmittedCard" style="display: none;">
+            <div class="card-title" style="color: #FF7675;">Not Submitted Today</div>
+            <div id="notSubmittedList"></div>
+          </div>
+        </div>
+
+        <!-- Employee Management Page -->
+        <div id="employee-management" class="page hidden">
+          <h1 class="page-title">Employee Management</h1>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="showCreateEmployeeModal()">➕ Add New Employee</button>
+          </div>
+
+          <!-- Employees Management Table -->
+          <div class="card">
+            <div class="card-title">Manage Employees</div>
+            <div class="table-responsive">
+              <table id="managementTable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Designation</th>
+                    <th>Teams</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="managementTableBody">
+                  <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Create/Edit Employee Modal -->
+          <div id="employeeModal" class="modal">
+            <div class="modal-content">
+              <button class="modal-close" onclick="closeEmployeeForm()">✕</button>
+              <div class="modal-header" id="modalTitle">Add New Employee</div>
+              <form id="employeeForm" onsubmit="saveEmployee(event)">
+                <div class="form-group">
+                  <label for="empName">Full Name *</label>
+                  <input type="text" id="empName" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="empPhone">Phone Number (10 digits)</label>
+                  <input type="text" id="empPhone" placeholder="1234567890" maxlength="10">
+                  <small id="phoneError" style="color: red; display: none;"></small>
+                </div>
+
+                <div class="form-group" id="empPasswordGroup">
+                  <label for="empPassword">Password *</label>
+                  <input type="password" id="empPassword">
+                </div>
+
+                <div class="form-group" id="designationGroup">
+                  <label for="empDesignation">Designation *</label>
+                  <select id="empDesignation" required>
+                    <option value="">Select Designation</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Senior LCE">Senior LCE</option>
+                    <option value="LCE">LCE</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Teams Assignment *</label>
+                  <div class="checkbox-group">
+                    <label class="checkbox-item">
+                      <input type="checkbox" name="teams" value="admission">
+                      <span>Admission</span>
+                    </label>
+                    <label class="checkbox-item">
+                      <input type="checkbox" name="teams" value="workshop">
+                      <span>Workshop</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group" id="createAdminGroup" style="display: none;">
+                  <label class="checkbox-item">
+                    <input type="checkbox" id="createAsAdmin" name="createAsAdmin">
+                    <span>Create as Admin</span>
+                  </label>
+                </div>
+
+                <div class="btn-group">
+                  <button type="submit" class="btn btn-primary">Save Employee</button>
+                  <button type="button" class="btn btn-secondary" onclick="closeEmployeeForm()">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- My Daily Data Page -->
+        <div id="my-data" class="page hidden">
+          <h1 class="page-title">My Daily Data Entry</h1>
+          <p class="page-subtitle">Log your daily metrics below</p>
+
+          <div class="card">
+            <form id="myDataForm" onsubmit="submitMyData(event)">
+              <div class="form-group">
+                <label for="myDate">Date *</label>
+                <input type="date" id="myDate" required>
+              </div>
+
+              <!-- Admission Metrics -->
+              <div id="admissionSection" style="display: none;">
+                <h3 style="color: var(--primary-dark); margin: 1.5rem 0 1rem 0;">Admission Team Metrics</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="freshLeadReceived">Fresh Lead Received</label>
+                    <input type="number" id="freshLeadReceived" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="admissionCalls">Outbound Calls</label>
+                    <input type="number" id="admissionCalls" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="admissionProspect">Prospect</label>
+                    <input type="number" id="admissionProspect" min="0" value="0">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Workshop Metrics -->
+              <div id="workshopSection" style="display: none;">
+                <h3 style="color: var(--accent-orange); margin: 1.5rem 0 1rem 0;">Workshop Team Metrics</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="workshopName">Workshop Program</label>
+                    <select id="workshopName">
+                      <option value="">Select Workshop</option>
+                      <option value="excel">Excel</option>
+                      <option value="sql">SQL</option>
+                      <option value="genai">Gen AI</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="workshopLeadReceived">Workshop Lead Received</label>
+                    <input type="number" id="workshopLeadReceived" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="workshopCalls">Outbound Calls</label>
+                    <input type="number" id="workshopCalls" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="workshopInterested">Interested</label>
+                    <input type="number" id="workshopInterested" min="0" value="0">
+                  </div>
+                </div>
+
+                <h4 style="color: var(--accent-red); margin: 1rem 0 0.5rem 0;">Post-Workshop Metrics</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="postWorkshopName">Workshop Program</label>
+                    <select id="postWorkshopName">
+                      <option value="">Select Workshop</option>
+                      <option value="excel">Excel</option>
+                      <option value="sql">SQL</option>
+                      <option value="genai">Gen AI</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="postWorkshopCalls">Outbound Calls</label>
+                    <input type="number" id="postWorkshopCalls" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="postWorkshopProspect">Prospect</label>
+                    <input type="number" id="postWorkshopProspect" min="0" value="0">
+                  </div>
+                </div>
+              </div>
+
+              <div class="btn-group">
+                <button type="submit" class="btn btn-primary">Submit Data</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Recent Submissions -->
+          <div class="card">
+            <div class="card-title">My Recent Submissions</div>
+            <div class="table-responsive">
+              <table id="mySubmissionsTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Admission Leads</th>
+                    <th>Workshop Leads</th>
+                    <th>Total Calls</th>
+                  </tr>
+                </thead>
+                <tbody id="mySubmissionsBody">
+                  <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
