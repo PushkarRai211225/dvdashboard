@@ -24,17 +24,33 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, '.')));
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-})
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Connect to MongoDB (serverless-safe caching)
+let cached = global._dvMongoose;
+if (!cached) {
+  cached = global._dvMongoose = { conn: null, promise: null };
+}
+
+async function connectToMongo() {
+  if (cached.conn) return cached.conn;
+
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI is not set');
+  }
+
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(mongoUri, {
+        serverSelectionTimeoutMS: 20000,
+        socketTimeoutMS: 45000,
+      })
+      .then((mongooseInstance) => mongooseInstance);
+  }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -51,8 +67,29 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// Vercel Serverless Function entrypoint
+export default async function handler(req, res) {
+  try {
+    await connectToMongo();
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    return res.status(500).json({ message: 'Database connection error' });
+  }
+
+  return app(req, res);
+}
+
+// Local dev / traditional server
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  connectToMongo()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error('MongoDB connection error:', err);
+      process.exitCode = 1;
+    });
+}
